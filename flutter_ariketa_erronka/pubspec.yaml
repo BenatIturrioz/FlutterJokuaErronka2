@@ -8,6 +8,7 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.5.2
+  audioplayers: ^5.2.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -17,3 +18,4 @@ flutter:
   assets:
     - assets/imagen.png
     - assets/coin.png
+    - assets/music.mp3

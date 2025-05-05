@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 void main() {
   runApp(const MyApp());
@@ -31,19 +32,43 @@ class _CoinCollectorGameState extends State<CoinCollectorGame> {
   static const double _playerMoveStep = 0.08;
   static const double _coinSpawnInterval = 1.0;
   static const Duration _gameTick = Duration(milliseconds: 16);
+  static const int _gameDuration = 30;
 
   double _playerX = 0.5;
   int _score = 0;
+  int _remainingTime = _gameDuration;
   bool _isGameOver = false;
+
   Timer? _gameLoop;
   Timer? _coinSpawnTimer;
+  Timer? _countdownTimer;
+
   List<Coin> coins = [];
   bool _isProcessingInput = false;
+
+  late AudioPlayer _audioPlayer;
 
   @override
   void initState() {
     super.initState();
+    _audioPlayer = AudioPlayer();
+    _playBackgroundMusic();
     _startGame();
+  }
+
+  void _playBackgroundMusic() async {
+    await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+    await _audioPlayer.play(AssetSource('music.mp3'));
+  }
+
+  @override
+  void dispose() {
+    _gameLoop?.cancel();
+    _coinSpawnTimer?.cancel();
+    _countdownTimer?.cancel();
+    _audioPlayer.stop();
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
   void _startGame() {
@@ -51,11 +76,13 @@ class _CoinCollectorGameState extends State<CoinCollectorGame> {
       _score = 0;
       _isGameOver = false;
       _playerX = 0.5;
+      _remainingTime = _gameDuration;
       coins.clear();
     });
 
     _gameLoop?.cancel();
     _coinSpawnTimer?.cancel();
+    _countdownTimer?.cancel();
 
     _gameLoop = Timer.periodic(_gameTick, (timer) {
       if (_isGameOver) {
@@ -68,7 +95,8 @@ class _CoinCollectorGameState extends State<CoinCollectorGame> {
       });
     });
 
-    _coinSpawnTimer = Timer.periodic(Duration(seconds: _coinSpawnInterval.toInt()), (timer) {
+    _coinSpawnTimer = Timer.periodic(
+        Duration(seconds: _coinSpawnInterval.toInt()), (timer) {
       if (_isGameOver) {
         timer.cancel();
         return;
@@ -77,6 +105,26 @@ class _CoinCollectorGameState extends State<CoinCollectorGame> {
         _spawnCoin();
       });
     });
+
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingTime <= 1) {
+        timer.cancel();
+        _endGame();
+      } else {
+        setState(() {
+          _remainingTime--;
+        });
+      }
+    });
+  }
+
+  void _endGame() {
+    setState(() {
+      _isGameOver = true;
+    });
+    _gameLoop?.cancel();
+    _coinSpawnTimer?.cancel();
+    _countdownTimer?.cancel();
   }
 
   void _updateCoins() {
@@ -103,7 +151,7 @@ class _CoinCollectorGameState extends State<CoinCollectorGame> {
       height: _playerSize,
     );
 
-    for (var coin in coins) {
+    for (var coin in List<Coin>.from(coins)) {
       final coinRect = Rect.fromCenter(
         center: Offset(
           MediaQuery.of(context).size.width * coin.x,
@@ -164,6 +212,18 @@ class _CoinCollectorGameState extends State<CoinCollectorGame> {
                 ),
               ),
               Positioned(
+                top: 20,
+                right: 20,
+                child: Text(
+                  "Tiempo: $_remainingTime",
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              Positioned(
                 bottom: 100,
                 left: screenWidth * _playerX - _playerSize / 2,
                 child: Image.asset(
@@ -208,16 +268,34 @@ class _CoinCollectorGameState extends State<CoinCollectorGame> {
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.black54,
+                      color: Colors.black87,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text(
-                      "GAME OVER",
-                      style: TextStyle(
-                        fontSize: 40,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          "¡Tiempo terminado!",
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          "Puntuación final: $_score",
+                          style: const TextStyle(
+                            fontSize: 24,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: _startGame,
+                          child: const Text("Reiniciar juego"),
+                        ),
+                      ],
                     ),
                   ),
                 ),
