@@ -58,7 +58,7 @@ class _CoinCollectorGameState extends State<CoinCollectorGame> {
 
   void _playBackgroundMusic() async {
     await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-    await _audioPlayer.play(AssetSource('music.mp3'));
+    await _audioPlayer.play(AssetSource('music.wav'));
   }
 
   @override

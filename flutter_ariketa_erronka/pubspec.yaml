@@ -18,4 +18,4 @@ flutter:
   assets:
     - assets/imagen.png
     - assets/coin.png
-    - assets/music.mp3
+    - assets/music.wav
